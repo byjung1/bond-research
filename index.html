@@ -14,7 +14,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, h#2a5298 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             min-height: 100vh;
             padding: 20px;
             color: #333;
@@ -264,7 +264,7 @@
             margin: 0 auto;
             text-align: center;
         }
-hh
+
         .download-section.active {
             display: block;
         }
@@ -427,7 +427,7 @@ hh
 
         // Initialize Toss Payments
         // 실제 사용시 clientKey를 발급받아 교체해야 합니다
-        const clientKey = 'test_ck_d46qopOB89jZg2pPYk4Y3ZmM75y0';
+        const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
         const tossPayments = TossPayments(clientKey);
 
         // Render products
@@ -479,7 +479,7 @@ hh
             const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
             try {
-                // Request payment
+                // Request payment - using general payment method for better compatibility
                 await tossPayments.requestPayment('카드', {
                     amount: selectedProduct.price,
                     orderId: orderId,
@@ -487,12 +487,17 @@ hh
                     customerName: buyerName,
                     customerEmail: buyerEmail,
                     customerMobilePhone: buyerPhone,
-                    successUrl: window.location.origin + window.location.pathname + `?success=true&orderId=${orderId}&productId=${selectedProduct.id}`,
-                    failUrl: window.location.origin + window.location.pathname + '?success=false',
+                    successUrl: `${window.location.origin}${window.location.pathname}?success=true&orderId=${orderId}&productId=${selectedProduct.id}`,
+                    failUrl: `${window.location.origin}${window.location.pathname}?success=false`,
                 });
             } catch (error) {
                 console.error('Payment error:', error);
-                alert('결제 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                if (error.code === 'USER_CANCEL') {
+                    // User cancelled - just close modal
+                    closeModal();
+                } else {
+                    alert('결제 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                }
             }
         });
 
@@ -501,14 +506,20 @@ hh
             const urlParams = new URLSearchParams(window.location.search);
             const success = urlParams.get('success');
             const productId = urlParams.get('productId');
+            const paymentKey = urlParams.get('paymentKey');
 
             if (success === 'true' && productId) {
                 const product = products.find(p => p.id === productId);
                 if (product) {
                     showDownloadPage(product);
+                } else {
+                    // Product not found, show error
+                    alert('상품 정보를 찾을 수 없습니다. 홈으로 돌아갑니다.');
+                    window.location.href = window.location.pathname;
                 }
             } else if (success === 'false') {
                 alert('결제가 취소되었습니다.');
+                window.location.href = window.location.pathname;
             }
         }
 
